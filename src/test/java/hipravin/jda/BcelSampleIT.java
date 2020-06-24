@@ -8,12 +8,24 @@ import java.io.IOException;
 
 
 public class BcelSampleIT {
-    String jarName = "C:\\dev\\hipravin-samples\\samples-chess\\target\\chess-0.0.1-SNAPSHOT.jar";
+    String jarName = "src/test/resources/chess-sample.jar";
 
     @Test
     void testParseGraphChess() throws IOException {
         BcelClassGraphBuilder graphBuilder = new BcelClassGraphBuilder(jarName);
         Graph classGraph = graphBuilder.build();
+
+        System.out.println("Node count " +  classGraph.getNodes().size());
+
+        Integer toto = classGraph.getNodes().stream()
+                .flatMap(n -> n.getLinks().stream())
+                .map(l -> l.getTo().getLinks().size())
+                .reduce(Integer::sum).orElse(-1);
+
+        System.out.println("Toto: " + toto);
+
+
+        System.out.println(classGraph);
     }
 
 //    @Test

@@ -1,12 +1,7 @@
 package hipravin.jda.graph.build;
 
-import hipravin.jda.graph.model.ClassNameAndPackage;
-import hipravin.jda.graph.model.Graph;
-import hipravin.jda.graph.model.ParsedMethodSignature;
-import org.apache.bcel.classfile.ClassParser;
-import org.apache.bcel.classfile.Field;
-import org.apache.bcel.classfile.JavaClass;
-import org.apache.bcel.classfile.Method;
+import hipravin.jda.graph.model.*;
+import org.apache.bcel.classfile.*;
 
 import java.io.IOException;
 import java.util.*;
@@ -16,6 +11,7 @@ import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class BcelClassGraphBuilder {
 
@@ -23,19 +19,64 @@ public class BcelClassGraphBuilder {
     private final Collection<Predicate<? super JarEntry>> excludeEntriesPredicates =
             Arrays.asList(nonClassEntries());
 
+
     public BcelClassGraphBuilder(String jarFileName) {
         this.jarFileName = jarFileName;
     }
 
     public Graph build() throws IOException {
 
+        final List<ParsedJavaClass> parsedJavaClasses = new ArrayList<>();
+        final Map<ClassNameAndPackage, GraphNode> projectClasses = new HashMap<>();
+        final Map<ClassNameAndPackage, GraphNode> nonProjectClasses = new HashMap<>();
+
+        final Graph result = new Graph();
+
         try (JarFile jar = new JarFile(jarFileName)) {
             Collections.list(jar.entries()).stream()
                     .filter(e -> excludeEntriesPredicates.stream().noneMatch(p -> p.test(e)))
-                    .forEach(this::processJarEntry);
+                    .forEach(e -> {
+                        parsedJavaClasses.add(parseJarClassEntry(e));
+                    });
         }
 
-        return null;
+        parsedJavaClasses.removeIf(c -> c.getClassNameAndPackage().getClassPackage().contains("org.springframework.boot")); //TODO: better filterinf
+
+        //collect project classes
+        parsedJavaClasses.forEach(pjc -> {
+            projectClasses.putIfAbsent(pjc.getClassNameAndPackage(),
+                    new GraphNode(new JavaClassMetadata(pjc.getClassNameAndPackage(), new MetaValue(pjc.getCodeAmountBytes()))));
+        });
+
+        //collect non project classes
+        parsedJavaClasses.forEach(pjc -> {
+            pjc.getAllReferences().keySet()
+                    .forEach(referredClass -> {
+                        if (!projectClasses.containsKey(referredClass)) {
+                            nonProjectClasses.putIfAbsent(referredClass,
+                                    new GraphNode(new JavaClassMetadata(referredClass, MetaValue.defaultMetaValue())));
+                        }
+                    });
+        });
+        //set links
+        parsedJavaClasses.forEach(pjc -> {
+            projectClasses.computeIfPresent(pjc.getClassNameAndPackage(), (c, node) -> {
+                pjc.getAllReferences().forEach((referredClass, value) -> {
+                    GraphNode to = Optional.ofNullable(projectClasses.get(referredClass))
+                            .or(() -> Optional.ofNullable(nonProjectClasses.get(referredClass)))
+                            .orElseThrow(() -> new GraphBuildEception("Referred class is neither project nor library"));
+
+                    node.addLink(new Link(to, new ClassUsageLinkMetadata(new MetaValue(value))));
+                });
+
+                return node;
+            });
+        });
+
+        Stream.concat(projectClasses.values().stream(), nonProjectClasses.values().stream())
+                .forEach(result::addNode);
+
+        return result;
     }
 
     private ParsedJavaClass parseJarClassEntry(JarEntry entry) {
@@ -43,57 +84,59 @@ public class BcelClassGraphBuilder {
         try {
             JavaClass javaClass = parser.parse();
 
-            String className = javaClass.getClassName();
-            String packageName = javaClass.getPackageName();
+            ParsedJavaClass result = new ParsedJavaClass(new ClassNameAndPackage(
+                    javaClass.getClassName(), javaClass.getPackageName()));
 
-
-
-            System.out.println("Class: " + javaClass.getClassName());
-            System.out.println("  Fields:");
             for (Field field : javaClass.getFields()) {
-                System.out.println("    " + field);
-            }
-            System.out.println("  Methods:");
-            for (Method method : javaClass.getMethods()) {
-                System.out.println("    " + method);
+                parseField(field)
+                        .forEach(result::addFieldReference);
             }
 
-            return new ParsedJavaClass(className, packageName);
+            for (Method method : javaClass.getMethods()) {
+                ParsedMethodSignature pms = parseMethod(method);
+                Stream.concat(
+                        pms.getClassesInMethodParams().stream(),
+                        pms.getClassesInReturnType().stream())
+                        .forEach(result::addMethodReference);
+
+                Arrays.stream(method.getAttributes())
+                        .filter(a -> a instanceof Code)
+                        .forEach(a -> result.addCodeAmount(((Code) a).getCode().length));
+            }
+
+            return result;
 
         } catch (IOException e) {
             throw new GraphBuildEception(e);
         }
-
     }
 
-    private void processJarEntry(JarEntry entry) {
-        ParsedJavaClass parsedJavaClass = parseJarClassEntry(entry);
-
-
-
-    }
-
-    private Optional<ParsedMethodSignature> parseMethod(Method method) {
+    private ParsedMethodSignature parseMethod(Method method) {
         return method.getGenericSignature() != null
                 ? parseGenericMethodSignature(method.getGenericSignature())
-                : Optional.of(parseCommonMethodSignature(method.getSignature()));
-
+                : parseGenericMethodSignature(method.getSignature());
     }
 
-    protected static ParsedMethodSignature parseCommonMethodSignature(String genericSignature) {
-        //e.g. ()Lhipravin/samples/chess/api/model/ColorDto;
-        return null;
+    private Set<ClassNameAndPackage> parseField(Field field) {
+        return Optional.ofNullable(field.getGenericSignature())
+                .or(() -> Optional.of(field.getSignature()))
+                .map(BcelClassGraphBuilder::findClassesInGenericSignature)
+                .orElseThrow(() -> new GraphBuildEception(
+                        "Failed to parse field signature: " + field.getSignature() + "/" + field.getGenericSignature()))
+                .stream().map(ClassNameAndPackage::fromSlashed)
+                .collect(Collectors.toSet());
     }
+
 
     private static final Pattern SIGN_PATTERN = Pattern.compile(".*\\((.*)\\)(.*)");
     private static final Pattern SIGN_CLASS_PATERN = Pattern.compile("L([^;<]+)");
 
     //    public <T, E extends ChessGame> Set<List<ChessGame>> superGeneric(T echessGame, Optional<List<? super Number>> troubleSu, Optional<List<? extends Number>> troubleE, double d, ThreadLocal<AtomicReference<List<King>>> trouble3) {
     //   <T:Ljava/lang/Object;E:Lhipravin/samples/chess/engine/ChessGame;>(TT;Ljava/util/Optional<Ljava/util/List<-Ljava/lang/Number;>;>;Ljava/util/Optional<Ljava/util/List<+Ljava/lang/Number;>;>;DLjava/lang/ThreadLocal<Ljava/util/concurrent/atomic/AtomicReference<Ljava/util/List<Lhipravin/samples/chess/engine/model/piece/King;>;>;>;)Ljava/util/Set<Ljava/util/List<Lhipravin/samples/chess/engine/ChessGame;>;>;
-    protected static Optional<ParsedMethodSignature> parseGenericMethodSignature(String signature) {
+    protected static ParsedMethodSignature parseGenericMethodSignature(String signature) {
         //e.g.  (Ljava/util/List<Lhipravin/samples/chess/api/model/PieceDto;>;)V
         Matcher sm = SIGN_PATTERN.matcher(signature);
-        if(sm.find()) {
+        if (sm.find()) {
             String params = sm.group(1);
             String retVal = sm.group(2);
 
@@ -107,17 +150,17 @@ public class BcelClassGraphBuilder {
                     .map(ClassNameAndPackage::fromSlashed)
                     .collect(Collectors.toSet());
 
-            return Optional.of(new ParsedMethodSignature(classesInReturnType, classesInParams));
+            return new ParsedMethodSignature(classesInReturnType, classesInParams);
         }
 
-        return Optional.empty();
+        throw new GraphBuildEception("Failed to parse method signature: " + signature);
     }
 
     private static List<String> findClassesInGenericSignature(String signPart) {
         List<String> classes = new ArrayList<>();
         Matcher m = SIGN_CLASS_PATERN.matcher(signPart);
 
-        while(m.find()) {
+        while (m.find()) {
             classes.add(m.group(1));
         }
 

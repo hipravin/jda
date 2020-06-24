@@ -24,7 +24,7 @@ public class ClassNameAndPackage {
                 .collect(Collectors.joining("."));
         String className = vals[vals.length - 1];
 
-        return new ClassNameAndPackage(className, classPackage);
+        return new ClassNameAndPackage(classPackage + "." + className, classPackage);
 
     }
 
@@ -52,6 +52,6 @@ public class ClassNameAndPackage {
 
     @Override
     public String toString() {
-        return classPackage + "." + className;
+        return classPackage + "/" + className;
     }
 }

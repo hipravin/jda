@@ -1,16 +1,10 @@
 package hipravin.jda.graph.model;
 
-public class Metadata {
-    private final ClassNameAndPackage nameAndPackage;
+public abstract class Metadata {
     private final MetaValue metaValue;
 
-    public Metadata(ClassNameAndPackage nameAndPackage, MetaValue metaValue) {
-        this.nameAndPackage = nameAndPackage;
+    public Metadata(MetaValue metaValue) {
         this.metaValue = metaValue;
-    }
-
-    public ClassNameAndPackage getNameAndPackage() {
-        return nameAndPackage;
     }
 
     public MetaValue getMetaValue() {

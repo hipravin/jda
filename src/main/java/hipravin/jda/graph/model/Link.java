@@ -1,19 +1,19 @@
 package hipravin.jda.graph.model;
 
 public class Link {
-    private final Node to;
-    private final MetaValue metaValue;
+    private final GraphNode to;
+    private final Metadata metadata;
 
-    public Link(Node to, MetaValue metaValue) {
+    public Link(GraphNode to, Metadata metadata) {
         this.to = to;
-        this.metaValue = metaValue;
+        this.metadata = metadata;
     }
 
-    public Node getTo() {
+    public GraphNode getTo() {
         return to;
     }
 
-    public MetaValue getMetaValue() {
-        return metaValue;
+    public Metadata getMetadata() {
+        return metadata;
     }
 }
