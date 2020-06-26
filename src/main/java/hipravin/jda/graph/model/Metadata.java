@@ -10,4 +10,6 @@ public abstract class Metadata {
     public MetaValue getMetaValue() {
         return metaValue;
     }
+
+    public abstract String getUniqueId();
 }

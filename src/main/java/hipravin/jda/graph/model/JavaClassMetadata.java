@@ -17,4 +17,9 @@ public class JavaClassMetadata extends Metadata {
     public String toString() {
         return nameAndPackage.toString();
     }
+
+    @Override
+    public String getUniqueId() {
+        return nameAndPackage.getClassName();
+    }
 }
