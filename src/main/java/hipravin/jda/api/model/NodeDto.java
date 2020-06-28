@@ -11,6 +11,8 @@ public class NodeDto {
 
     private List<LinkDto> links;
 
+    private boolean isNonProjectClass;
+
     public NodeDto(PositionDto position, long value, String header, List<LinkDto> links) {
         this.position = position;
         this.value = value;
@@ -51,5 +53,13 @@ public class NodeDto {
 
     public void setLinks(List<LinkDto> links) {
         this.links = links;
+    }
+
+    public boolean isNonProjectClass() {
+        return isNonProjectClass;
+    }
+
+    public void setNonProjectClass(boolean nonProjectClass) {
+        isNonProjectClass = nonProjectClass;
     }
 }

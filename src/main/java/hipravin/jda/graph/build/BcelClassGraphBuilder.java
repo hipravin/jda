@@ -45,7 +45,7 @@ public class BcelClassGraphBuilder {
         //collect project classes
         parsedJavaClasses.forEach(pjc -> {
             projectClasses.putIfAbsent(pjc.getClassNameAndPackage(),
-                    new GraphNode(new JavaClassMetadata(pjc.getClassNameAndPackage(), new MetaValue(pjc.getCodeAmountBytes()))));
+                    new GraphNode(new JavaClassMetadata(pjc.getClassNameAndPackage(), new MetaValue(pjc.getCodeAmountBytes()), JavaClassType.PROJECT)));
         });
 
         //collect non project classes
@@ -54,7 +54,7 @@ public class BcelClassGraphBuilder {
                     .forEach(referredClass -> {
                         if (!projectClasses.containsKey(referredClass)) {
                             nonProjectClasses.putIfAbsent(referredClass,
-                                    new GraphNode(new JavaClassMetadata(referredClass, MetaValue.defaultMetaValue())));
+                                    new GraphNode(new JavaClassMetadata(referredClass, MetaValue.defaultMetaValue(), JavaClassType.NON_PROJECT)));
                         }
                     });
         });
@@ -62,11 +62,13 @@ public class BcelClassGraphBuilder {
         parsedJavaClasses.forEach(pjc -> {
             projectClasses.computeIfPresent(pjc.getClassNameAndPackage(), (c, node) -> {
                 pjc.getAllReferences().forEach((referredClass, value) -> {
+                    JavaClassType jct = (projectClasses.containsKey(referredClass)) ? JavaClassType.PROJECT : JavaClassType.NON_PROJECT;
+
                     GraphNode to = Optional.ofNullable(projectClasses.get(referredClass))
                             .or(() -> Optional.ofNullable(nonProjectClasses.get(referredClass)))
                             .orElseThrow(() -> new GraphBuildEception("Referred class is neither project nor library"));
 
-                    node.addLink(new Link(to, new ClassUsageLinkMetadata(new MetaValue(value))));
+                    node.addLink(new Link(to, new ClassUsageLinkMetadata(new MetaValue(value), jct)));
                 });
 
                 return node;

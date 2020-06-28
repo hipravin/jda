@@ -2,7 +2,6 @@ package hipravin.jda.graph.model;
 
 public enum JavaClassType {
     PROJECT,
-    JVM,
-    LIBRARY,
+    NON_PROJECT,
     UNKNOWN_
 }

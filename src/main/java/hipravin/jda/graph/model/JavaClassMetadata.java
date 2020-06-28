@@ -4,8 +4,8 @@ public class JavaClassMetadata extends Metadata {
     private final ClassNameAndPackage nameAndPackage;
     private JavaClassType javaClassType;
 
-    public JavaClassMetadata(ClassNameAndPackage nameAndPackage, MetaValue metaValue) {
-        super(metaValue);
+    public JavaClassMetadata(ClassNameAndPackage nameAndPackage, MetaValue metaValue, JavaClassType javaClassType) {
+        super(metaValue, javaClassType);
         this.nameAndPackage = nameAndPackage;
     }
 

@@ -7,6 +7,7 @@ import hipravin.jda.api.model.PositionDto;
 import hipravin.jda.graph.build.BcelClassGraphBuilder;
 import hipravin.jda.graph.model.Graph;
 import hipravin.jda.graph.model.GraphNode;
+import hipravin.jda.graph.model.JavaClassType;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -45,13 +46,15 @@ public class ClassGraphService {
         nodeDto.setHeader(graphNode.getMetadata().getUniqueId());
         nodeDto.setValue(graphNode.getMetadata().getMetaValue().getLongValue());
         nodeDto.setPosition(nodePositions.get(graphNode.getMetadata().getUniqueId()));
+        nodeDto.setNonProjectClass(graphNode.getMetadata().getJavaClassType() == JavaClassType.NON_PROJECT);
 
         nodeDto.setLinks(graphNode.getLinks().stream()
                 .map(gl -> {
                     return new LinkDto(nodePositions.get(gl.getTo().getMetadata().getUniqueId()),
                             gl.getMetadata().getMetaValue().getLongValue(),
                             gl.getMetadata().getUniqueId(),
-                            gl.getTo().getMetadata().getUniqueId());
+                            gl.getTo().getMetadata().getUniqueId(),
+                            gl.getTo().getMetadata().getJavaClassType() == JavaClassType.NON_PROJECT);
                 })
                 .collect(Collectors.toList()));
         return nodeDto;

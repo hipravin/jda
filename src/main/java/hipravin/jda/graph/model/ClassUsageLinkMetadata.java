@@ -1,8 +1,8 @@
 package hipravin.jda.graph.model;
 
 public class ClassUsageLinkMetadata extends Metadata {
-    public ClassUsageLinkMetadata(MetaValue metaValue) {
-        super(metaValue);
+    public ClassUsageLinkMetadata(MetaValue metaValue, JavaClassType javaClassType) {
+        super(metaValue, javaClassType);
     }
 
     @Override

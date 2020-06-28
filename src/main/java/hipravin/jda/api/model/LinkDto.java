@@ -6,16 +6,18 @@ public class LinkDto {
     private long value;
     private String text;
     private String nodeTo;
+    private boolean isNonProjectClass = false;
 
 
     public LinkDto() {
     }
 
-    public LinkDto(PositionDto positionTo, long value, String text, String nodeTo) {
+    public LinkDto(PositionDto positionTo, long value, String text, String nodeTo, boolean isNonProjectClass) {
         this.positionTo = positionTo;
         this.value = value;
         this.text = text;
         this.nodeTo = nodeTo;
+        this.isNonProjectClass = isNonProjectClass;
     }
 
     public PositionDto getPositionTo() {
@@ -48,5 +50,13 @@ public class LinkDto {
 
     public void setNodeTo(String nodeTo) {
         this.nodeTo = nodeTo;
+    }
+
+    public boolean isNonProjectClass() {
+        return isNonProjectClass;
+    }
+
+    public void setNonProjectClass(boolean nonProjectClass) {
+        isNonProjectClass = nonProjectClass;
     }
 }
