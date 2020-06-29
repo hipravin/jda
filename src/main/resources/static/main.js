@@ -3,6 +3,7 @@ var ctx = canvas.getContext("2d");
 
 var nodePositions = new Map();
 var classGraph;
+var selectedNode;
 
 $(document).ready(function () {
     initCtx();
@@ -19,23 +20,65 @@ function addCanvasOnClick() {
     var elements = [];
 
 // Add event listener for `click` events.
-    elem.addEventListener('click', function (event) {
+//     elem.addEventListener('click', function (event) {
+//         const rect = canvas.getBoundingClientRect();
+//         const x = event.clientX - rect.left;
+//         const y = event.clientY - rect.top;
+//
+//         // alert(`Clicked on ${x}, ${y}`);
+//
+//         nodePositions.forEach((v, k, m) => {
+//             if (isNear(x, y, v.pos.x, v.pos.y)) {
+//                 alert('Clicled on ' + k);
+//             }
+//         });
+//     }, false);
+
+    elem.addEventListener('mousedown', function (event) {
         const rect = canvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
 
-        // alert(`Clicked on ${x}, ${y}`);
-
         nodePositions.forEach((v, k, m) => {
             if (isNear(x, y, v.pos.x, v.pos.y)) {
-                alert('Clicled on ' + k);
+                selectedNode = k;
+                console.log(`mousedown ${k}`);
             }
         });
+    }, false);
+
+    elem.addEventListener('mousemove', function (event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        const origx = rtx(x);
+        const origy = rty(y);
+
+        if (selectedNode) {
+            classGraph.nodes.forEach((n, i) => {
+                if(n.header === selectedNode) {
+                    n.position.x = origx;
+                    n.position.y = origy;
+                }
+                n.links.forEach((l, j) => {
+                    if(l.nodeTo === selectedNode) {
+                        l.positionTo.x = origx;
+                        l.positionTo.y = origy;
+                    }
+                });
+            });
+            drawGraph(classGraph);
+        }
+    }, false);
+
+    elem.addEventListener('mouseup', function (event) {
+        selectedNode = null;
     }, false);
 }
 
 function isNear(xclicked, yclicked, nx, ny) {
-    return Math.abs(nx - xclicked) < 5 && Math.abs(ny - yclicked) < 5;
+    return Math.abs(nx - xclicked) < 10 && Math.abs(ny - yclicked) < 10;
 }
 
 function initCtx() {
@@ -56,6 +99,10 @@ function drawSomething() {
 
 
     drawArrow(100, 100, 300, 200);
+}
+
+function clearCanvas() {
+    ctx.clearRect(0,0, canvas.clientWidth, canvas.clientHeight);
 }
 
 function drawNode(x, y, w, h, text) {
@@ -128,6 +175,7 @@ function loadSampleGraph() {
 
 function drawGraph(graph) {
 
+    clearCanvas();
     classGraph = graph;
     graph.nodes.forEach((n, i) => {
         drawNodeAndLinks(n);
@@ -136,15 +184,16 @@ function drawGraph(graph) {
 
 function drawNodeAndLinks(node) {
     if (!node.nonProjectClass && node.header.indexOf('$') < 0) {
-        drawGraphNode(node);
+        const width = 7 * node.header.length;
+        drawGraphNode(node, width);
         node.links.forEach((l, i) => {
-            drawGraphLink(node.position, l);
+            drawGraphLink(node.position, l, width);
         });
     }
 }
 
-function drawGraphNode(node) {
-    drawNode(tx(node.position.x), ty(node.position.y), 7 * node.header.length, scaleH(node), node.header);
+function drawGraphNode(node, width) {
+    drawNode(tx(node.position.x), ty(node.position.y), width, scaleH(node), node.header);
     nodePositions.set(node.header, {
         pos: {
             x: tx(node.position.x),
@@ -155,9 +204,9 @@ function drawGraphNode(node) {
     // nodePositions[node.header].pos.y = ty(node.position.y);
 }
 
-function drawGraphLink(from, link) {
+function drawGraphLink(from, link, width) {
     if (!link.nonProjectClass && link.nodeTo.indexOf('$') < 0) {
-        drawArrow(tx(from.x), ty(from.y), tx(link.positionTo.x) + 150, ty(link.positionTo.y));
+        drawArrow(tx(from.x) + width, ty(from.y), tx(link.positionTo.x), ty(link.positionTo.y));
     }
 }
 
@@ -165,8 +214,17 @@ function tx(x) {
     return (x + 100) * ((canvas.clientWidth - 300) / 200);
 }
 
+function rtx(tx) {
+    return tx / ((canvas.clientWidth - 300) / 200) - 100;
+}
+
 function ty(y) {
-    return (y + 100) * (canvas.clientHeight / 200);
+    return (y + 100) * ((canvas.clientHeight - 20) / 200);
+}
+
+function rty(ty) {
+    return ty / ((canvas.clientHeight - 20) / 200) - 100;
+
 }
 
 function scaleH(node) {
