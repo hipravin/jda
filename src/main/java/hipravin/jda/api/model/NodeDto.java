@@ -8,6 +8,8 @@ public class NodeDto {
 
     private long value;
     private String header;
+    private long projectInnboud = 0;
+    private long projectOutbound = 0;
 
     private List<LinkDto> links;
 
@@ -61,5 +63,21 @@ public class NodeDto {
 
     public void setNonProjectClass(boolean nonProjectClass) {
         isNonProjectClass = nonProjectClass;
+    }
+
+    public long getProjectInnboud() {
+        return projectInnboud;
+    }
+
+    public void setProjectInnboud(long projectInnboud) {
+        this.projectInnboud = projectInnboud;
+    }
+
+    public long getProjectOutbound() {
+        return projectOutbound;
+    }
+
+    public void setProjectOutbound(long projectOutbound) {
+        this.projectOutbound = projectOutbound;
     }
 }

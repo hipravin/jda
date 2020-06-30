@@ -33,10 +33,25 @@ public class ClassGraphService {
                 .stream()
                 .collect(Collectors.toMap(n -> n.getMetadata().getUniqueId(), n -> defaultRandomPosition()));
 
-
         graphDto.setNodes(classGraph.getNodes().stream()
                 .map(gn -> fromGraphNode(gn, randomPositions))
                 .collect(Collectors.toList()));
+
+        graphDto.setComplexityMin(classGraph.getNodes().stream()
+                .filter(n -> n.getMetadata().getJavaClassType() == JavaClassType.PROJECT)
+                .mapToLong(n -> n.getMetadata().getMetaValue().getLongValue())
+                .min().orElseThrow());
+        graphDto.setComplexityMax(classGraph.getNodes().stream()
+                .filter(n -> n.getMetadata().getJavaClassType() == JavaClassType.PROJECT)
+                .mapToLong(n -> n.getMetadata().getMetaValue().getLongValue())
+                .max().orElseThrow());
+
+        graphDto.setOutboundMin(0);
+
+        graphDto.setOutboundMax(classGraph.getNodes().stream()
+                .filter(n -> n.getMetadata().getJavaClassType() == JavaClassType.PROJECT)
+                .mapToLong(n -> n.getLinks().size())
+                .max().orElseThrow());
 
         return graphDto;
     }
@@ -57,6 +72,12 @@ public class ClassGraphService {
                             gl.getTo().getMetadata().getJavaClassType() == JavaClassType.NON_PROJECT);
                 })
                 .collect(Collectors.toList()));
+
+        nodeDto.setProjectOutbound(
+                graphNode.getLinks().stream()
+                        .filter(l -> l.getTo().getMetadata().getJavaClassType() == JavaClassType.PROJECT)
+                        .count());
+
         return nodeDto;
     }
 

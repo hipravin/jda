@@ -4,12 +4,29 @@ var ctx = canvas.getContext("2d");
 var nodePositions = new Map();
 var classGraph;
 var selectedNode;
+var complexityMin = 0;
+var complexityMax = 1000000;
+var outboundMin = 0;
+var outboundMax = 1000000;
 
 $(document).ready(function () {
     initCtx();
     loadSampleGraph();
     addCanvasOnClick();
+    addSliderListener();
+
 });
+
+function addSliderListener() {
+    $(document).on('change', '#complexityInput', function () {
+        complexityMin = $(this).val();
+        drawGraph(classGraph);
+    });
+    $(document).on('change', '#outboundInput', function () {
+        outboundMin = $(this).val();
+        drawGraph(classGraph);
+    });
+}
 
 
 function addCanvasOnClick() {
@@ -57,12 +74,12 @@ function addCanvasOnClick() {
 
         if (selectedNode) {
             classGraph.nodes.forEach((n, i) => {
-                if(n.header === selectedNode) {
+                if (n.header === selectedNode) {
                     n.position.x = origx;
                     n.position.y = origy;
                 }
                 n.links.forEach((l, j) => {
-                    if(l.nodeTo === selectedNode) {
+                    if (l.nodeTo === selectedNode) {
                         l.positionTo.x = origx;
                         l.positionTo.y = origy;
                     }
@@ -92,8 +109,6 @@ function initCtx() {
 
 
 function drawSomething() {
-
-
     drawNode(100, 100, 200, 50, '100 100 200 50');
     drawNode(300, 200, 50, 25, '300 200 50 25');
 
@@ -102,7 +117,7 @@ function drawSomething() {
 }
 
 function clearCanvas() {
-    ctx.clearRect(0,0, canvas.clientWidth, canvas.clientHeight);
+    ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 }
 
 function drawNode(x, y, w, h, text) {
@@ -166,6 +181,7 @@ function loadSampleGraph() {
         dataType: "json",
         success: function (data) {
             drawGraph(data);
+            updateRangeInputs(data);
         },
         error: function (errMsg) {
             alert(errMsg);
@@ -182,8 +198,17 @@ function drawGraph(graph) {
     });
 }
 
+function updateRangeInputs(graph) {
+    $('#complexityInput').prop('min', graph.complexityMin);
+    $('#complexityInput').prop('max', graph.complexityMax);
+    $('#complexityInput').val(graph.complexityMin);
+    $('#outboundInput').prop('min', graph.outboundMin);
+    $('#outboundInput').prop('max', graph.outboundMax);
+    $('#outboundInput').val('max', graph.outboundMin);
+}
+
 function drawNodeAndLinks(node) {
-    if (!node.nonProjectClass && node.header.indexOf('$') < 0) {
+    if (isNodeVisible(node)) {
         const width = 7 * node.header.length;
         drawGraphNode(node, width);
         node.links.forEach((l, i) => {
@@ -204,8 +229,25 @@ function drawGraphNode(node, width) {
     // nodePositions[node.header].pos.y = ty(node.position.y);
 }
 
+function isNodeVisibleById(nid) {
+    let isVisible = false;
+
+    classGraph.nodes.forEach((n, i) => {
+        if (nid === n.header) {
+            isVisible = isNodeVisible(n);
+        }
+    });
+    return isVisible;
+}
+
+function isNodeVisible(node) {
+    return !node.nonProjectClass && node.header.indexOf('$') < 0
+        && node.value >= complexityMin && node.value <= complexityMax
+        && node.projectOutbound >= outboundMin && node.projectOutbound <= outboundMax
+}
+
 function drawGraphLink(from, link, width) {
-    if (!link.nonProjectClass && link.nodeTo.indexOf('$') < 0) {
+    if (!link.nonProjectClass && link.nodeTo.indexOf('$') < 0 && isNodeVisibleById(link.nodeTo)) {
         drawArrow(tx(from.x) + width, ty(from.y), tx(link.positionTo.x), ty(link.positionTo.y));
     }
 }
