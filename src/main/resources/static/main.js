@@ -57,7 +57,7 @@ function addCanvasOnClick() {
         const y = event.clientY - rect.top;
 
         nodePositions.forEach((v, k, m) => {
-            if (isNear(x, y, v.pos.x, v.pos.y)) {
+            if (isNear(x, y, v.pos.x, v.pos.y) && isNodeVisibleById(k)) {
                 selectedNode = k;
                 console.log(`mousedown ${k}`);
             }

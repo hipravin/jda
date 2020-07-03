@@ -24,7 +24,8 @@ public class JavaClassGraphController {
     @GetMapping("/sample")
     public GraphDto sampleChessRandom() throws IOException {
 //        return classGraphService.buildGraph("C:\\dev\\hipravin-samples\\jda\\src\\test\\resources\\chess-sample.jar");
-        return classGraphService.buildGraph("C:\\dev\\hipravin-samples\\jda\\src\\test\\resources\\spring-core-5.2.6.RELEASE.jar");
+//        return classGraphService.buildGraph("C:\\dev\\hipravin-samples\\jda\\src\\test\\resources\\spring-core-5.2.6.RELEASE.jar");
+        return classGraphService.buildGraph("C:\\Users\\Fduch\\.m2\\repository\\org\\springframework\\spring-beans\\5.2.6.RELEASE\\spring-beans-5.2.6.RELEASE.jar");
     }
 
     @ExceptionHandler(GraphBuildEception.class)
